@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>K-Next Outreach — מערכת שליחות</title>
+<style>
+  :root { --blue:#1b4dff; --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --bg:#f6f7f9; --green:#16a34a; --amber:#d97706; --red:#dc2626; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:var(--bg); color:var(--ink); }
+  .wrap { max-width:1080px; margin:0 auto; padding:24px 20px 60px; }
+  h1 { font-size:22px; margin:0 0 2px; }
+  .sub { color:var(--muted); font-size:13px; margin:0 0 18px; }
+  nav { display:flex; gap:6px; margin-bottom:20px; border-bottom:1px solid var(--line); }
+  nav button { font:inherit; background:none; border:none; padding:10px 16px; cursor:pointer; color:var(--muted); border-bottom:2px solid transparent; font-weight:600; }
+  nav button.on { color:var(--blue); border-bottom-color:var(--blue); }
+  section { display:none; } section.on { display:block; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
+  .card h2 { font-size:17px; margin:0 0 14px; display:flex; align-items:center; gap:8px; }
+  .card h2 .dot { width:9px; height:9px; border-radius:50%; background:var(--blue); }
+  .row { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid #f3f4f6; font-size:15px; }
+  .row:last-child { border-bottom:none; }
+  .row .k { color:var(--muted); }
+  .row .v { font-weight:700; font-variant-numeric:tabular-nums; }
+  .v.blue{color:var(--blue)} .v.green{color:var(--green)} .v.amber{color:var(--amber)} .v.red{color:var(--red)}
+  .health { margin-top:16px; background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
+  .bar { height:10px; background:#eef0f3; border-radius:6px; overflow:hidden; margin-top:8px; }
+  .bar > i { display:block; height:100%; background:var(--blue); }
+  .pill { font-size:12px; padding:2px 10px; border-radius:999px; font-weight:700; }
+  .pill.ok { background:#dcfce7; color:#166534; } .pill.paused { background:#fee2e2; color:#991b1b; }
+  .btn { font:inherit; font-weight:700; border:none; border-radius:10px; padding:11px 20px; cursor:pointer; }
+  .btn.stop { background:#fee2e2; color:#991b1b; } .btn.go { background:#dcfce7; color:#166534; }
+  .btn.primary { background:var(--blue); color:#fff; }
+  .field { display:flex; align-items:center; gap:10px; margin:14px 0; }
+  input[type=number]{ font:inherit; width:90px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; text-align:center; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th,td { text-align:right; padding:10px 8px; border-bottom:1px solid #f1f2f4; }
+  th { color:var(--muted); font-weight:600; font-size:13px; }
+  .st { font-size:12px; font-weight:700; padding:2px 9px; border-radius:6px; }
+  .st.sent{background:#e0f2fe;color:#075985} .st.queued{background:#f3f4f6;color:#374151}
+  .st.failed{background:#fee2e2;color:#991b1b} .st.opened{background:#dcfce7;color:#166534}
+  .lnk { color:var(--blue); cursor:pointer; font-weight:600; background:none; border:none; font:inherit; }
+  .filters { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  select { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; }
+  .toggle { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f3f4f6; }
+  .sw { width:44px; height:24px; border-radius:999px; background:#d1d5db; position:relative; cursor:pointer; transition:.15s; }
+  .sw.on { background:var(--green); } .sw > i { position:absolute; top:3px; inset-inline-start:3px; width:18px; height:18px; background:#fff; border-radius:50%; transition:.15s; }
+  .sw.on > i { inset-inline-start:23px; }
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; padding:20px; z-index:10; }
+  .modal.on { display:flex; }
+  .sheet { background:#fff; border-radius:14px; max-width:600px; width:100%; max-height:85vh; overflow:auto; padding:22px; }
+  .banner { background:#fff7ed; color:#9a3412; border:1px solid #fed7aa; padding:8px 12px; border-radius:8px; font-size:13px; margin-bottom:14px; display:none; }
+  .banner.on { display:block; }
+  .foot { color:var(--muted); font-size:12px; margin-top:20px; text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>K-Next Outreach — מערכת שליחות</h1>
+  <p class="sub">מנוע דיוור אוטונומי · שני ערוצים · <span id="ts"></span></p>
+  <div class="banner" id="banner">מצב תצוגה — לא מחובר ל-DB. הנתונים לדוגמה והפעולות לא נשמרות. יתחבר אוטומטית ברגע שה-DB יעלה.</div>
+
+  <nav>
+    <button class="on" data-s="overview">סקירה</button>
+    <button data-s="queue">שליחות ותוכן</button>
+    <button data-s="controls">בקרה</button>
+  </nav>
+
+  <section class="on" id="s-overview">
+    <div class="grid" id="cards"></div>
+    <div class="health" id="health"></div>
+  </section>
+
+  <section id="s-queue">
+    <div class="filters">
+      <select id="f-status"><option value="all">כל הסטטוסים</option><option value="sent">נשלחו</option><option value="queued">בתור</option><option value="failed">נכשלו</option></select>
+      <select id="f-channel"><option value="all">כל הערוצים</option><option value="accountant">רו"ח / עו"ד / יועצי מס</option><option value="business_owner">בעלי עסקים</option></select>
+    </div>
+    <div class="card" style="padding:6px 14px"><table id="qtbl"><thead><tr>
+      <th>נמען</th><th>ערוץ</th><th>נושא</th><th>סטטוס</th><th>נפתח</th><th>תוכן</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section id="s-controls">
+    <div class="grid">
+      <div class="card">
+        <h2><span class="dot"></span>שליטה בשליחה</h2>
+        <div class="row"><span class="k">מצב נוכחי</span><span id="c-state" class="pill ok">פעיל</span></div>
+        <p style="color:var(--muted);font-size:13px;margin:12px 0 8px">עצירה מיידית של כל השליחות. אפשר להפעיל מחדש בכל רגע.</p>
+        <button class="btn stop" id="c-toggle">⏸ עצור שליחות</button>
+      </div>
+      <div class="card">
+        <h2><span class="dot"></span>כמות יומית</h2>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 8px">כמה מיילים לשלוח ביום. בתקופת ה-warm-up התקרה הבטיחותית גוברת (מתחיל נמוך ועולה).</p>
+        <div class="field"><input type="number" id="c-cap" min="0" max="100" value="100"><button class="btn primary" id="c-cap-save">שמור</button></div>
+        <div class="row"><span class="k">תקרת warm-up היום</span><span class="v" id="c-warmup">—</span></div>
+        <div class="row"><span class="k">נשלח בפועל היום</span><span class="v blue" id="c-effective">—</span></div>
+      </div>
+      <div class="card">
+        <h2><span class="dot"></span>אוטומציה לכל ערוץ</h2>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 4px">כשדולק — המערכת שולחת לאותו ערוץ אוטומטית בלי אישור ידני.</p>
+        <div class="toggle"><span>רו"ח / עו"ד / יועצי מס</span><div class="sw on" id="sw-accountant" data-ch="accountant"><i></i></div></div>
+        <div class="toggle"><span>בעלי עסקים</span><div class="sw on" id="sw-business_owner" data-ch="business_owner"><i></i></div></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">מתעדכן כל 30 שניות · המרכז הישראלי לחברות</p>
+</div>
+
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+
+<script>
+const KEY = new URLSearchParams(location.search).get('key') || localStorage.getItem('knext_admin_key') || '';
+if (KEY) localStorage.setItem('knext_admin_key', KEY);
+let DEMO_MODE = false;
+const qs = KEY ? '?key='+encodeURIComponent(KEY) : '';
+const n = x => (x ?? 0).toLocaleString('he-IL');
+const pct = (a,b) => b>0 ? Math.round(a/b*100) : 0;
+
+const DEMO = {
+  overview: {
+    channels: {
+      accountant: { label:'רו"ח / עו"ד / יועצי מס', contacts:1289, queued:6450, sent:241, opened:110, clicked:18, failed:4, sent_24h:110 },
+      business_owner: { label:'בעלי עסקים', contacts:8420, queued:8179, sent:241, opened:96, clicked:31, failed:7, sent_24h:100 },
+    },
+    health: { paused:false, warmup_day:2, warmup_cap:20, user_cap:100, today_cap:20, sent_today:14, remaining_today:6, unsubscribed:12, auto_approve_accountant:true, auto_approve_business_owner:true },
+  },
+  queue: { rows: [
+    { id:1, channel:'accountant', recipient_email:'cohen@cpa.co.il', recipient_name:'רועי כהן', subject:'שיתוף פעולה — מכירה ורכישה של חברות', status:'sent', sent_at:'2026-07-01', opened_at:'2026-07-01', clicked_at:null, preview:'היי רועי, קוראים לי נתנאל, מהמרכז הישראלי לחברות...' },
+    { id:2, channel:'business_owner', recipient_email:'info@shop.co.il', recipient_name:'דנה לוי', subject:'רוצה למכור או לקנות פעילות עסקית?', status:'sent', sent_at:'2026-07-01', opened_at:null, clicked_at:null, preview:'היי דנה, קוראים לי נתנאל, מהמרכז הישראלי לחברות...' },
+    { id:3, channel:'accountant', recipient_email:'adv@law.co.il', recipient_name:'משה בר', subject:'שיתוף פעולה — מכירה ורכישה של חברות', status:'queued', sent_at:null, opened_at:null, clicked_at:null, preview:'היי משה, קוראים לי נתנאל...' },
+  ]},
+};
+
+async function api(path, opts){
+  try {
+    const r = await fetch('/api/admin/'+path + (path.includes('?')? '&'+qs.slice(1) : qs), opts);
+    if (!r.ok) throw new Error('no-api');
+    return await r.json();
+  } catch(e){ DEMO_MODE = true; return null; }
+}
+
+function card(c){
+  return `<div class="card"><h2><span class="dot"></span>${c.label}</h2>
+    <div class="row"><span class="k">אנשי קשר</span><span class="v">${n(c.contacts)}</span></div>
+    <div class="row"><span class="k">בתור</span><span class="v blue">${n(c.queued)}</span></div>
+    <div class="row"><span class="k">נשלחו</span><span class="v">${n(c.sent)}</span></div>
+    <div class="row"><span class="k">נפתחו</span><span class="v green">${n(c.opened)} (${pct(c.opened,c.sent)}%)</span></div>
+    <div class="row"><span class="k">נלחצו</span><span class="v green">${n(c.clicked)}</span></div>
+    <div class="row"><span class="k">נכשלו/חזרו</span><span class="v ${c.failed?'red':''}">${n(c.failed)}</span></div>
+    <div class="row"><span class="k">ב-24 שעות</span><span class="v">${n(c.sent_24h)}</span></div></div>`;
+}
+
+let HEALTH = {};
+async function loadOverview(){
+  const d = await api('overview') || DEMO.overview;
+  document.getElementById('cards').innerHTML = Object.values(d.channels).map(card).join('');
+  const h = d.health; HEALTH = h;
+  document.getElementById('health').innerHTML = `
+    <h2 style="font-size:16px;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center">בריאות השליחה
+      <span class="pill ${h.paused?'paused':'ok'}">${h.paused?'מושהה':'פעיל'}</span></h2>
+    <div class="row"><span class="k">נשלחו היום</span><span class="v">${n(h.sent_today)} / ${n(h.today_cap)}</span></div>
+    <div class="bar"><i style="width:${pct(h.sent_today,h.today_cap)}%"></i></div>
+    <div class="row" style="margin-top:10px"><span class="k">יום warm-up</span><span class="v">${h.warmup_day<0?'—':h.warmup_day}</span></div>
+    <div class="row"><span class="k">נותרו היום</span><span class="v blue">${n(h.remaining_today)}</span></div>
+    <div class="row"><span class="k">הוסרו מהרשימה</span><span class="v amber">${n(h.unsubscribed)}</span></div>`;
+  syncControls(h);
+  document.getElementById('banner').classList.toggle('on', DEMO_MODE);
+  document.getElementById('ts').textContent = (DEMO_MODE?'מצב תצוגה · ':'עודכן ') + new Date().toLocaleTimeString('he-IL');
+}
+
+function syncControls(h){
+  const paused = !!h.paused;
+  const st = document.getElementById('c-state'); st.textContent = paused?'מושהה':'פעיל'; st.className = 'pill '+(paused?'paused':'ok');
+  const btn = document.getElementById('c-toggle');
+  btn.textContent = paused?'▶ הפעל שליחות':'⏸ עצור שליחות'; btn.className = 'btn '+(paused?'go':'stop');
+  document.getElementById('c-cap').value = h.user_cap ?? 100;
+  document.getElementById('c-warmup').textContent = h.warmup_cap ?? '—';
+  document.getElementById('c-effective').textContent = h.today_cap ?? '—';
+  toggleSw('accountant', h.auto_approve_accountant); toggleSw('business_owner', h.auto_approve_business_owner);
+}
+function toggleSw(ch,on){ document.getElementById('sw-'+ch).classList.toggle('on', !!on); }
+
+const stMap = { sent:'נשלח', queued:'בתור', approved:'בתור', failed:'נכשל', bounced:'חזר', skipped:'דולג' };
+const chMap = { accountant:'רו"ח/עו"ד', business_owner:'בעלי עסקים' };
+async function loadQueue(){
+  const status = document.getElementById('f-status').value, channel = document.getElementById('f-channel').value;
+  const d = await api(`queue?status=${status}&channel=${channel}&limit=100`) || DEMO.queue;
+  const tb = document.querySelector('#qtbl tbody');
+  tb.innerHTML = (d.rows||[]).map(r => {
+    const opened = r.opened_at ? '<span class="st opened">כן</span>' : '—';
+    const stcls = r.status==='sent'?'sent':(['queued','approved'].includes(r.status)?'queued':'failed');
+    return `<tr><td>${r.recipient_name||''}<br><span style="color:var(--muted);font-size:12px">${r.recipient_email}</span></td>
+      <td>${chMap[r.channel]||r.channel}</td><td>${r.subject||''}</td>
+      <td><span class="st ${stcls}">${stMap[r.status]||r.status}</span></td><td>${opened}</td>
+      <td><button class="lnk" onclick="viewMsg(${r.id})">צפה</button></td></tr>`;
+  }).join('') || '<tr><td colspan="6" style="color:var(--muted);padding:20px">אין שליחות עדיין.</td></tr>';
+}
+
+async function viewMsg(id){
+  const sheet = document.getElementById('sheet');
+  const demoRow = DEMO.queue.rows.find(r=>r.id===id);
+  const d = await api('message?id='+id) || demoRow;
+  const body = d.html_body || `<div dir="rtl" style="font-family:Arial;line-height:1.7">${(d.preview||d.text_body||'').replace(/\n/g,'<br>')}</div>`;
+  sheet.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b style="font-size:16px">${d.subject||''}</b><button class="lnk" onclick="document.getElementById('modal').classList.remove('on')">✕ סגור</button></div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:14px">אל: ${d.recipient_name||''} · ${d.recipient_email||''}</div>
+    <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden">${body}</div>`;
+  document.getElementById('modal').classList.add('on');
+}
+
+// ── פעולות בקרה ──
+async function control(action, extra){
+  if (DEMO_MODE){ toast('מצב תצוגה — הפעולה תישמר מול DB אמיתי'); return false; }
+  const r = await api('control', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action, key:KEY, ...extra }) });
+  return !!r;
+}
+document.getElementById('c-toggle').onclick = async () => {
+  const paused = HEALTH.paused; await control(paused?'resume':'pause'); loadOverview();
+};
+document.getElementById('c-cap-save').onclick = async () => {
+  const v = document.getElementById('c-cap').value; await control('set_cap',{value:v}); loadOverview();
+};
+document.querySelectorAll('.sw').forEach(sw => sw.onclick = async () => {
+  const ch = sw.dataset.ch, now = !sw.classList.contains('on');
+  if (await control('auto_approve',{channel:ch,value:now})) sw.classList.toggle('on', now);
+  else if (DEMO_MODE) sw.classList.toggle('on', now);
+});
+
+let toastT; function toast(msg){ let t=document.getElementById('toast'); if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;inset-inline-start:50%;transform:translateX(50%);background:#111;color:#fff;padding:10px 18px;border-radius:10px;font-size:14px;z-index:20';document.body.appendChild(t);} t.textContent=msg; t.style.display='block'; clearTimeout(toastT); toastT=setTimeout(()=>t.style.display='none',2500); }
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  document.querySelectorAll('section').forEach(s=>s.classList.remove('on'));
+  document.getElementById('s-'+b.dataset.s).classList.add('on');
+  if (b.dataset.s==='queue') loadQueue();
+});
+document.getElementById('f-status').onchange = loadQueue;
+document.getElementById('f-channel').onchange = loadQueue;
+document.getElementById('modal').onclick = e => { if(e.target.id==='modal') e.currentTarget.classList.remove('on'); };
+
+loadOverview(); setInterval(loadOverview, 30000);
+</script>
+</body>
+</html>
